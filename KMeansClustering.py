@@ -93,10 +93,10 @@ df['status_type'] = list(map(convert_to_digit, df['status_type']))
 dataset = np.reshape(df.values, (len(df.index), len(df.columns)))
 np.random.shuffle(dataset)
 
-train_data = dataset[:7000]
+train_data = dataset[:6550]
 np.random.shuffle(train_data)
 
-test_data = dataset[7000:]
+test_data = dataset[6550:]
 
 model = KMeansClustering(2, 0.0001, 100)
 
