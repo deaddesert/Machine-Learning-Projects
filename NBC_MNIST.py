@@ -10,11 +10,11 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load training and testing data
 (train_image, train_label), (test_image, test_label) = mnist.load_data()
 
-digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 
 class NaiveBayesClassifier:
@@ -33,38 +33,31 @@ class NaiveBayesClassifier:
 			self.prior[c] = float(len(Y[Y == c])/len(Y))
 
 	def predict(self, X, Y):
-		self.digit_accuracy = dict()
-		self.true_predictions = 0
+
 		images_and_preds = []
 		for i in range(X.shape[0]):
 			list_of_probs = []
 			for c, g in self.GaussianNB.items():
-				mean, variance = g['mean'], g['variance']
 				likelihood = (np.exp(-((X[i]- g['mean'])**2)/(2*(g['variance']))))/(np.sqrt(2*np.pi*g['variance']))
 				prob_of_class = np.sum(np.log(likelihood) + np.log(self.prior[c]))
+
 				list_of_probs.append(prob_of_class)
 
 			pred = np.argmax(list_of_probs) # return the index of max prob
-
-			if pred == Y[i]:
-				self.true_predictions += 1
-				if Y[i] not in self.digit_accuracy:
-					self.digit_accuracy[Y[i]] = 1
-				else:
-					self.digit_accuracy[Y[i]] += 1
 
 			images_and_preds.append([X[i], pred])
 
 		return images_and_preds
 
-	def overall_score(self, X):
-		return round(100*(self.true_predictions)/(X.shape[0]),4)
+	def accuracy(self, y_pred, y_test, digits):
 
-	def digit_accuracy_score(self, X, Y):
-		list_of_accuracy = []
-		for i in self.digit_accuracy.keys():
-			list_of_accuracy.append(round(100*(self.digit_accuracy[i]/len(X[Y == i])), 4))
-		return list_of_accuracy
+		confusion_matrix = np.zeros((len(digits), len(digits)))
+
+		for i in range(len(y_pred)):
+			confusion_matrix[digits.index(y_test[i])][digits.index(y_pred[i])] = confusion_matrix[digits.index(y_test[i])][digits.index(y_pred[i])] + 1
+
+		return confusion_matrix
+
 
 
 # Shuffle data before training and testing model
@@ -90,31 +83,60 @@ np.random.shuffle(train_data)
 test_data = total_data[60000:, :]
 np.random.shuffle(test_data)
 
+classes = list(np.unique(total_label))
+
 # Train NBC Model
 model = NaiveBayesClassifier()
 model.fit(train_data[:, :-1], train_data[:, -1])
 
 # Test NBC Model
-image_prediction = model.predict(test_data[:, :-1], test_data[:, -1])
+prediction = model.predict(test_data[:, :-1], test_data[:, -1])
+pred_image = []
+pred_label = []
+
+for i in range(len(prediction)):
+	pred_image.append(prediction[i][0])
+	pred_label.append(prediction[i][1])
+
+
+scores_matrix = model.accuracy(pred_label, test_data[:, -1], classes)
+
+accuracy_score = 0
+list_of_accuracy = []
+for i in range(10):
+	accuracy_score += scores_matrix[i][i]
+	img_of_digit = 0
+	for j in range(10):
+		img_of_digit += scores_matrix[i][j]
+	list_of_accuracy.append(round(100*(scores_matrix[i][i])/img_of_digit))
 
 # Accuracy Score for each Digit
-NBC_scores = pd.DataFrame(np.array([digits, model.digit_accuracy_score(test_data[:, :-1], test_data[:, -1])]).T, 
+NBC_scores = pd.DataFrame(np.array([classes, list_of_accuracy]).T,
 	 columns = ['Digit', 'Accuracy Score (%)'])
 print("\nAccuracy Score of each digit: \n",NBC_scores)
 
-# Overall Accuracy Score for NBC
-print("\n Overall Accuracy Score of NBC (%): ",model.overall_score(test_data[:, :-1]))
+# Overal Score
+print('\n Overall Accuracy Score of NBC (%): ', round(100*(accuracy_score)/np.sum(scores_matrix), 4))
+
+# Plot the confusion matrix
+plt.figure(figsize=(50,50))
+ax = sns.heatmap(scores_matrix, annot=True, cmap="YlGnBu")
+bottom,top=ax.get_ylim()
+ax.set_ylim(bottom+0.5,top-0.5)
+plt.xlabel('Predicted class value')
+plt.ylabel('Actual class value')
 
 # Represent the Classification
 plt.figure(figsize=(50, 20))
 for i in range(20):
 	j = np.random.randint(len(test_data[:, -1]))
 	plt.subplot(2, 10, i+1)
-	img = image_prediction[j][0].reshape(28, 28)
+	img = pred_image[j].reshape(28, 28)
 	plt.imshow(img, cmap='Greys')
-	plt.xlabel('Image of digit '+str(image_prediction[j][1]), fontsize=9)
+	plt.xlabel('Image of digit '+str(pred_label[j]), fontsize=9)
 
 plt.show()
+
 
 
 
