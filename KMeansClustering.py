@@ -122,7 +122,7 @@ for centroid in centroid_results:
 
 # We will represent clusters and centroids based on num_reactions and num_comments
 
-plt.axis([0, 2500, 0, 3000])
+plt.axis([0, 2500, 0, 5000])
 for features in train_clusters[0][:200]:
 	plt.plot(features[1], features[2], 'ro')
 
@@ -144,7 +144,7 @@ print("\n")
 # Testing model
 predicted_clusters, test_labels = model.testing(test_data)
 
-plt.axis([0, 2500, 0, 3000])
+plt.axis([0, 2500, 0, 5000])
 for features in predicted_clusters[0]:
 	plt.plot(features[1], features[2], 'ro')
 
